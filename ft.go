@@ -4,6 +4,7 @@ import (
 	"context"
 	"runtime"
 
+	"github.com/hashicorp/go-metrics"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
@@ -14,7 +15,7 @@ import (
 )
 
 func Trace(ctx context.Context, action string) Span {
-	start := time.Now()
+	now := time.Now()
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -40,19 +41,11 @@ func Trace(ctx context.Context, action string) Span {
 		slog.String("action", action),
 	}
 
-	if DefaultLogger().Enabled(context.Background(), slog.LevelInfo) {
-		var pcs [1]uintptr
-		runtime.Callers(2, pcs[:])
-		r := slog.NewRecord(start, logLevel.Level(), "action started", pcs[0])
-		r.AddAttrs(attrs...)
-		_ = DefaultLogger().Handler().Handle(context.Background(), r)
-
-		DefaultLogger().LogAttrs(ctx, logLevel.Level(), "action started", attrs...)
-	}
+	log(ctx, "action started", logLevel.Level(), now, attrs...)
 
 	return Span{
 		ctx:       ctx,
-		start:     start.UnixNano(),
+		start:     now,
 		action:    action,
 		traceSpan: span,
 	}
@@ -60,22 +53,47 @@ func Trace(ctx context.Context, action string) Span {
 
 type Span struct {
 	ctx       context.Context
-	start     int64
+	start     time.Time
 	action    string
 	traceSpan trace.Span
+	err       *error
+}
+
+func (s Span) WithError(err *error) Span {
+	s.err = err
+
+	return s
 }
 
 func (s Span) Log() {
-	duration := time.Now().UnixNano() - s.start
+	now := time.Now()
+	level := logLevel.Level()
 
-	DefaultLogger().LogAttrs(
-		s.ctx, logLevel.Level(),
-		"action ended",
+	attrs := []slog.Attr{
 		slog.String("action", s.action),
-		slog.Duration("duration", time.Duration(duration)),
-	)
+		slog.Duration("duration", now.Sub(s.start)),
+	}
+
+	if s.traceSpan != nil && s.err != nil && *s.err != nil {
+		s.traceSpan.RecordError(*s.err)
+		attrs = append(attrs, slog.Any("error", *s.err))
+	}
+
+	if metricsEnabled.Load() {
+		metrics.MeasureSinceWithLabels([]string{s.action}, s.start, nil)
+	}
+
+	log(s.ctx, "action ended", level, now, attrs...)
 
 	if s.traceSpan != nil {
 		s.traceSpan.End()
 	}
+}
+
+func log(ctx context.Context, msg string, level slog.Level, now time.Time, attrs ...slog.Attr) {
+	var pcs [1]uintptr
+	runtime.Callers(3, pcs[:])
+	r := slog.NewRecord(now, level, msg, pcs[0])
+	r.AddAttrs(attrs...)
+	_ = DefaultLogger().Handler().Handle(ctx, r)
 }

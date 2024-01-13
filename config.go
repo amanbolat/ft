@@ -14,6 +14,7 @@ var (
 	logger         atomic.Value
 	logLevel       slog.LevelVar
 	tracingEnabled atomic.Bool
+	metricsEnabled atomic.Bool
 
 	gitCommit = "unknown_git_commit"
 )
@@ -54,4 +55,16 @@ func EnableTracing() {
 
 func DisableTracing() {
 	tracingEnabled.Store(false)
+}
+
+func TracingEnabled() bool {
+	return tracingEnabled.Load()
+}
+
+func EnableMetrics() {
+	metricsEnabled.Store(true)
+}
+
+func DisableMetrics() {
+	metricsEnabled.Store(false)
 }
