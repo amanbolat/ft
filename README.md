@@ -1,4 +1,8 @@
-# ft – log and trace a function
+# ft – function trace
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/amanbolat/ft)](https://goreportcard.com/report/github.com/amanbolat/ft)
+[![GoDoc](https://godoc.org/github.com/amanbolat/ft?status.svg)](https://godoc.org/github.com/amanbolat/ft)
+[![License](https://img.shields.io/badge/license-BSD%20Zero%20Clause%20License-blue.svg)](https://choosealicense.com/licenses/0bsd/)
 
 A very simple utility library written in Go to log and trace a function lifecycle.
 
