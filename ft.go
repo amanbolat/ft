@@ -75,6 +75,7 @@ func (s Span) Log() {
 	}
 
 	if s.err != nil && *s.err != nil {
+		level = slog.LevelError
 		attrs = append(attrs, slog.Any("error", *s.err))
 
 		if s.traceSpan != nil {
