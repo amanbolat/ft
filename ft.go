@@ -74,9 +74,12 @@ func (s Span) Log() {
 		slog.Duration("duration", now.Sub(s.start)),
 	}
 
-	if s.traceSpan != nil && s.err != nil && *s.err != nil {
-		s.traceSpan.RecordError(*s.err)
+	if s.err != nil && *s.err != nil {
 		attrs = append(attrs, slog.Any("error", *s.err))
+
+		if s.traceSpan != nil {
+			s.traceSpan.RecordError(*s.err)
+		}
 	}
 
 	if metricsEnabled.Load() {
