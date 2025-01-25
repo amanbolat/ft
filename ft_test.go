@@ -3,6 +3,7 @@ package ft_test
 import (
 	"context"
 	"errors"
+	"io"
 	"log/slog"
 	"testing"
 	"time"
@@ -20,223 +21,214 @@ import (
 )
 
 func TestSpan_Basic(t *testing.T) {
-	// Setup
+	ft.SetDefaultLogger(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	spanRecorder := tracetest.NewSpanRecorder()
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder))
 	otel.SetTracerProvider(tp)
-	
+
 	fakeClock := clockwork.NewFakeClock()
 	ft.SetClock(fakeClock)
-	
+
 	ft.SetTracingEnabled(true)
-	
-	// Test
+
 	ctx := context.Background()
 	testAction := "test_action"
-	
+
 	ctx, span := ft.Start(ctx, testAction)
-	
-	// Advance time by 100ms
 	fakeClock.Advance(100 * time.Millisecond)
-	
 	span.End()
-	
-	// Verify
+
 	spans := spanRecorder.Ended()
 	require.Len(t, spans, 1)
-	
+
 	recordedSpan := spans[0]
 	assert.Equal(t, testAction, recordedSpan.Name())
 	assert.Equal(t, codes.Unset, recordedSpan.Status().Code)
-	
-	// Verify duration
 	assert.Equal(t, 100*time.Millisecond, recordedSpan.EndTime().Sub(recordedSpan.StartTime()))
 }
 
 func TestSpan_WithError(t *testing.T) {
-	// Setup
+	ft.SetDefaultLogger(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	spanRecorder := tracetest.NewSpanRecorder()
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder))
 	otel.SetTracerProvider(tp)
-	
+
 	fakeClock := clockwork.NewFakeClock()
 	ft.SetClock(fakeClock)
-	
 	ft.SetTracingEnabled(true)
-	
-	// Test
+
 	ctx := context.Background()
 	testAction := "test_action_error"
 	testError := errors.New("test error")
 	var err error = testError
-	
+
 	ctx, span := ft.Start(ctx, testAction, ft.WithErr(&err))
-	
 	fakeClock.Advance(50 * time.Millisecond)
-	
 	span.End()
-	
-	// Verify
+
 	spans := spanRecorder.Ended()
 	require.Len(t, spans, 1)
-	
+
 	recordedSpan := spans[0]
 	assert.Equal(t, testAction, recordedSpan.Name())
 	assert.Equal(t, codes.Error, recordedSpan.Status().Code)
 	assert.Equal(t, testError.Error(), recordedSpan.Status().Description)
 }
 
+type CustomValue struct {
+	val1 string
+	val2 string
+}
+
+func (v CustomValue) LogValue() slog.Value {
+	return slog.StringValue(v.val1 + "_" + v.val2)
+}
+
 func TestSpan_WithAttributes(t *testing.T) {
-	// Setup
+	ft.SetDefaultLogger(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	spanRecorder := tracetest.NewSpanRecorder()
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder))
 	otel.SetTracerProvider(tp)
-	
+
 	fakeClock := clockwork.NewFakeClock()
 	ft.SetClock(fakeClock)
-	
 	ft.SetTracingEnabled(true)
 	ft.SetAppendOtelAttrs(true)
-	
-	// Test
+
 	ctx := context.Background()
 	testAction := "test_action_attrs"
-	
+
 	ctx, span := ft.Start(ctx, testAction, ft.WithAttrs(
-		slog.String("test_key", "test_value"),
-		slog.Int64("test_number", 42),
+		slog.String("string", "value"),
+		slog.Int64("int", 1),
+		slog.Bool("bool", true),
+		slog.Duration("duration", time.Second*500),
+		slog.Float64("float", 2),
+		slog.Time("timestamp", time.Date(2024, 1, 1, 1, 1, 1, 1, time.UTC)),
+		slog.Group("group", slog.String("string", "value"), slog.Int64("int", 1)),
+		slog.Any("custom_value", CustomValue{val1: "a", val2: "b"}),
 	))
-	
+
 	span.End()
-	
-	// Verify
+
 	spans := spanRecorder.Ended()
 	require.Len(t, spans, 1)
-	
+
 	recordedSpan := spans[0]
 	assert.Equal(t, testAction, recordedSpan.Name())
-	
+
 	expectedAttrs := []attribute.KeyValue{
 		attribute.String("action", testAction),
-		attribute.String("test_key", "test_value"),
-		attribute.Int64("test_number", 42),
+		attribute.String("string", "value"),
+		attribute.Int64("int", 1),
+		attribute.Bool("bool", true),
+		attribute.Int64("duration", int64(time.Second*500)),
+		attribute.Float64("float", 2),
+		attribute.String("timestamp", time.Date(2024, 1, 1, 1, 1, 1, 1, time.UTC).Format(time.RFC3339)),
+		attribute.String("group", "[string=value int=1]"),
+		attribute.String("custom_value", "a_b"),
 	}
-	
+
 	spanAttrs := recordedSpan.Attributes()
 	assert.ElementsMatch(t, expectedAttrs, spanAttrs)
 }
 
 func TestSpan_TracingDisabled(t *testing.T) {
-	// Setup
+	ft.SetDefaultLogger(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	spanRecorder := tracetest.NewSpanRecorder()
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder))
 	otel.SetTracerProvider(tp)
-	
+
 	fakeClock := clockwork.NewFakeClock()
 	ft.SetClock(fakeClock)
-	
 	ft.SetTracingEnabled(false)
-	
-	// Test
+
 	ctx := context.Background()
 	testAction := "test_action_disabled"
-	
+
 	ctx, span := ft.Start(ctx, testAction)
 	span.End()
-	
-	// Verify no spans were recorded
+
 	spans := spanRecorder.Ended()
 	assert.Empty(t, spans)
 }
 
 func TestSpan_MetricsEnabled(t *testing.T) {
-	// Setup
+	ft.SetDefaultLogger(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	fakeClock := clockwork.NewFakeClock()
 	ft.SetClock(fakeClock)
-	
+
 	ft.SetMetricsEnabled(true)
 	ft.SetDurationMetricUnit(ft.DurationMetricUnitMillisecond)
-	
+
 	mp := noop.NewMeterProvider()
 	otel.SetMeterProvider(mp)
-	
-	// Test
+
 	ctx := context.Background()
 	testAction := "test_action_metrics"
-	
+
 	ctx, span := ft.Start(ctx, testAction)
 	fakeClock.Advance(75 * time.Millisecond)
 	span.End()
 }
 
 func TestSpan_NilContext(t *testing.T) {
-	// Setup
+	ft.SetDefaultLogger(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	spanRecorder := tracetest.NewSpanRecorder()
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder))
 	otel.SetTracerProvider(tp)
-	
+
 	fakeClock := clockwork.NewFakeClock()
 	ft.SetClock(fakeClock)
-	
 	ft.SetTracingEnabled(true)
-	
-	// Test with nil context
+
 	testAction := "test_action_nil_ctx"
-	
 	ctx, span := ft.Start(nil, testAction)
-	
-	// Verify context was created
 	assert.NotNil(t, ctx)
-	
+
 	span.End()
-	
-	// Verify span was recorded
+
 	spans := spanRecorder.Ended()
 	require.Len(t, spans, 1)
 	assert.Equal(t, testAction, spans[0].Name())
 }
 
 func TestSpan_DurationUnits(t *testing.T) {
-	// Setup
+	ft.SetDefaultLogger(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	fakeClock := clockwork.NewFakeClock()
 	ft.SetClock(fakeClock)
-	
+
 	ft.SetMetricsEnabled(true)
-	
-	// Test milliseconds
+
 	ft.SetDurationMetricUnit(ft.DurationMetricUnitMillisecond)
-	ctx, span := ft.Start(context.Background(), "test_ms")
+	_, span := ft.Start(context.Background(), "test_ms")
 	fakeClock.Advance(100 * time.Millisecond)
 	span.End()
-	
-	// Test seconds
+
 	ft.SetDurationMetricUnit(ft.DurationMetricUnitSecond)
-	ctx, span = ft.Start(context.Background(), "test_s")
+	_, span = ft.Start(context.Background(), "test_s")
 	fakeClock.Advance(1 * time.Second)
 	span.End()
 }
 
 func TestSpan_LogLevels(t *testing.T) {
-	// Setup
 	fakeClock := clockwork.NewFakeClock()
 	ft.SetClock(fakeClock)
-	
+
 	var logBuffer testLogBuffer
 	logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
 	ft.SetDefaultLogger(logger)
-	
+
 	ft.SetLogLevelOnSuccess(slog.LevelDebug)
 	ft.SetLogLevelOnFailure(slog.LevelError)
-	
-	// Test success case
-	ctx, span := ft.Start(context.Background(), "test_success")
+
+	_, span := ft.Start(context.Background(), "test_success")
 	span.End()
 	assert.Contains(t, logBuffer.String(), "level=DEBUG")
-	
-	// Test failure case
+
 	logBuffer.Reset()
 	err := errors.New("test error")
-	ctx, span = ft.Start(context.Background(), "test_failure", ft.WithErr(&err))
+	_, span = ft.Start(context.Background(), "test_failure", ft.WithErr(&err))
 	span.End()
 	assert.Contains(t, logBuffer.String(), "level=ERROR")
 }
