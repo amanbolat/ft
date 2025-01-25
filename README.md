@@ -61,7 +61,7 @@ ft.SetMetricsEnabled(true)
 ft.SetTracingEnabled(true)
 ```
 
-> !NOTE
+> [!TIP]
 > In the example above I use [go-faster/sdk](https://github.com/go-faster/sdk) to setup OTEL based on environment
 > variables.
 
