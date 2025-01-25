@@ -24,17 +24,12 @@ This library allows you to enable the observability of your functions with just 
 
 ## Usage
 
-Just add these two lines to the beginning of the function:
-
-```go
-ctx, span := ft.Start(ctx, "package.Function", ft.WithErr(&err))
-defer span.End()
-```
+Just add two lines to the beginning of the function:
 
 ```go
 func Do(ctx context.Context) (err error) {
-    ctx, span := ft.Start(ctx, "main.Do", ft.WithErr(&err))
-    defer span.End()
+    ctx, span := ft.Start(ctx, "main.Do", ft.WithErr(&err)) // Log when we enter the `Do` function.
+    defer span.End()                                        // Log, trace and meter when we exit the `Do` function.
 
     err = errors.New("unexpected error")
 	
