@@ -8,56 +8,62 @@ A very simple utility library written in Go to log and trace a function lifecycl
 
 ## Why?
 
-Because I'm tired of adding the same boilerplate code to every function I write, that usually requires three or more lines of code to log and trace a function and some metrics.
+Because I'm tired of adding the same boilerplate code to every function I write, that usually requires three or more 
+lines of code to log and trace a function and some metrics.
 
 ## Usage
 
-Just add `defer ft.Trace(ctx, "<method name>").WithError(&err).Log()` to the beginning of the function.
+Just add these two lines to the beginning of the function:
+
+```go
+ctx, span := ft.Start(ctx, "package.Function", ft.WithErr(&err))
+defer span.End()
+```
 
 ```go
 func Do(ctx context.Context) (err error) {
-	defer ft.Trace(ctx, "main.Do").WithError(&err).Log()
-	err = errors.New("unexpected error")
+	ctx, span := ft.Start(ctx, "main.Do", ft.WithErr(&err))
+	defer span.End()
+	
+	err := callAnotherFn()
+	if err != nil {
+		return err
+    }   
 
-	return
+	return nil
 }
 ```
 
 If you run the code above, you will see the following output:
 
 ```shell
-2024/01/18 01:05:07 INFO action started action=main.Do
-2024/01/18 01:05:07 ERROR action ended action=main.Do duration=472.583µs error=unexpected error
+time=2025-01-20T00:32:20.025+01:00 level=INFO msg="action started" action=main.Do
+time=2025-01-20T00:32:20.330+01:00 level=ERROR msg="action ended" action=main.Do duration_ms=137.546 error="error from callAnotherFn"
 ```
 
-## Tracing
 
-Add the following to the main function to enable tracing:
+## Configuration
 
-```go
-func main() {
-    ft.EnableTracing()
-}
-```
+`ft` package provides many functions to configure its behaviour. See the table below:
 
-## Metrics
+Here's a markdown table with all the `Set` functions and their descriptions:
 
-Add the following to the main function to enable metrics:
-
-```go
-func main() {
-    ft.EnableMetrics()
-}
-```
-
-It uses [go-metrics](github.com/hashicorp/go-metrics) package under the hood.
-
+| Function                                 | Description                                                                                                                                                  |
+|------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `SetDurationMetricUnit(unit string)`     | Sets the global duration metric unit. Accepts either millisecond (`ms`) or second (`s`) as valid units. Defaults to millisecond if invalid unit is provided. |
+| `SetDefaultLogger(l *slog.Logger)`       | Sets the global logger instance. Does nothing if nil logger is provided.                                                                                     |
+| `SetLogLevelOnFailure(level slog.Level)` | Sets the global log level for failure scenarios.                                                                                                             |
+| `SetLogLevelOnSuccess(level slog.Level)` | Sets the global log level for success scenarios.                                                                                                             |
+| `SetTracingEnabled(v bool)`              | Enables or disables global tracing functionality.                                                                                                            |
+| `SetMetricsEnabled(v bool)`              | Enables or disables global metrics collection.                                                                                                               |
+| `SetClock(c clockwork.Clock)`            | Sets the global clock instance used for time-related operations.                                                                                             |
+| `SetAppendOtelAttrs(v bool)`             | Enables or disables the appending of OpenTelemetry attributes globally.                                                                                      |
 
 ## License
 
 BSD Zero Clause License
 
-Copyright (c) [2024] [Amanbolat Balabekov]
+Copyright (c) 2024 Amanbolat Balabekov
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted.
