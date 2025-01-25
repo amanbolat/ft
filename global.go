@@ -66,3 +66,11 @@ func SetTracingEnabled(v bool) {
 func SetMetricsEnabled(v bool) {
 	globalMetricsEnabled.Store(v)
 }
+
+func SetClock(c clockwork.Clock) {
+	globalClock.Store(&c)
+}
+
+func SetAppendOtelAttrs(v bool) {
+	globalAppendOtelAttrs.Store(v)
+}
