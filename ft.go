@@ -230,3 +230,23 @@ func durationToMillisecond(d time.Duration) float64 {
 func durationToSecond(d time.Duration) float64 {
 	return float64(d/1000) / 1000000
 }
+
+// SetTracerProvider sets the global TracerProvider.
+func SetTracerProvider(tp trace.TracerProvider) {
+	otel.SetTracerProvider(tp)
+}
+
+// SetMeterProvider sets the global MeterProvider.
+func SetMeterProvider(mp metric.MeterProvider) {
+	otel.SetMeterProvider(mp)
+}
+
+// SetClock sets the global clock implementation.
+func SetClock(c Clock) {
+	globalClock.Store(&c)
+}
+
+// SetAppendOtelAttrs sets whether to append OpenTelemetry attributes.
+func SetAppendOtelAttrs(v bool) {
+	globalAppendOtelAttrs.Store(v)
+}
