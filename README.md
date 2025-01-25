@@ -22,15 +22,15 @@ defer span.End()
 
 ```go
 func Do(ctx context.Context) (err error) {
-	ctx, span := ft.Start(ctx, "main.Do", ft.WithErr(&err))
-	defer span.End()
+    ctx, span := ft.Start(ctx, "main.Do", ft.WithErr(&err))
+    defer span.End()
 	
-	err := callAnotherFn()
-	if err != nil {
-		return err
+    err := callAnotherFn()
+    if err != nil {
+        return err
     }   
 
-	return nil
+    return nil
 }
 ```
 
@@ -58,20 +58,3 @@ Here's a markdown table with all the `Set` functions and their descriptions:
 | `SetMetricsEnabled(v bool)`              | Enables or disables global metrics collection.                                                                                                               |
 | `SetClock(c clockwork.Clock)`            | Sets the global clock instance used for time-related operations.                                                                                             |
 | `SetAppendOtelAttrs(v bool)`             | Enables or disables the appending of OpenTelemetry attributes globally.                                                                                      |
-
-## License
-
-BSD Zero Clause License
-
-Copyright (c) 2024 Amanbolat Balabekov
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.
