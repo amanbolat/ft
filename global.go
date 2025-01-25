@@ -51,14 +51,6 @@ func SetLogLevelOnSuccess(level slog.Level) {
 	globalLogLevelEndOnSuccess.Set(level)
 }
 
-func LogLevelOnFailure() slog.Level {
-	return globalLogLevelEndOnFailure.Level()
-}
-
-func LogLevelOnSuccess() slog.Level {
-	return globalLogLevelEndOnSuccess.Level()
-}
-
 func SetTracingEnabled(v bool) {
 	globalTracingEnabled.Store(v)
 }
