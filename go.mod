@@ -7,8 +7,10 @@ require (
 	github.com/jonboulle/clockwork v0.5.0
 	github.com/puzpuzpuz/xsync/v3 v3.4.1
 	github.com/samber/lo v1.47.0
+	github.com/stretchr/testify v1.8.4
 	go.opentelemetry.io/otel v1.34.0
 	go.opentelemetry.io/otel/metric v1.34.0
+	go.opentelemetry.io/otel/sdk v1.33.0
 	go.opentelemetry.io/otel/trace v1.34.0
 	go.uber.org/atomic v1.11.0
 )
