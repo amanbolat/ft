@@ -19,8 +19,8 @@ import (
 
 const (
 	instrumentationName           = "github.com/amanbolat/ft"
-	DurationMetricUnitSecond      = "ms"
-	DurationMetricUnitMillisecond = "s"
+	DurationMetricUnitSecond      = "s"
+	DurationMetricUnitMillisecond = "ms"
 )
 
 var int64Counters = xsync.NewMapOf[string, metric.Int64Counter]()
