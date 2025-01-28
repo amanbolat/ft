@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1] - 2025-01-28
+
+### 🐛 Bug Fixes
+
+- Incorrect const values
+
+### ⚙️ Miscellaneous Tasks
+
+- Add git-cliff configuration for changelog generation
+- Add changelog
+- Update example formatting in readme
+- Update simple example
+- Update readme
+- Update readme
+- Fix examples in readme
+
 ## [0.2.0] - 2025-01-25
 
 ### 🚀 Features
