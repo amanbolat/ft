@@ -19,9 +19,9 @@ import (
 
 const (
 	instrumentationName = "github.com/amanbolat/ft"
-	// DurationMetricUnitSecond represents seconds as the unit for duration metrics
+	// DurationMetricUnitSecond represents seconds as the unit for duration metrics.
 	DurationMetricUnitSecond = "s"
-	// DurationMetricUnitMillisecond represents milliseconds as the unit for duration metrics
+	// DurationMetricUnitMillisecond represents milliseconds as the unit for duration metrics.
 	DurationMetricUnitMillisecond = "ms"
 )
 
@@ -47,7 +47,7 @@ func WithAttrs(attrs ...slog.Attr) Option {
 	}
 }
 
-// Span represents a traced and logged operation that can be ended
+// Span represents a traced and logged operation that can be ended.
 type Span interface {
 	End()
 }
@@ -211,7 +211,7 @@ func log(ctx context.Context, msg string, level slog.Level, now time.Time, attrs
 	_ = globalLogger.Load().Handler().Handle(ctx, r)
 }
 
-// mapSlogAttrToOtel converts a slog.Attr to an OpenTelemetry attribute.KeyValue
+// mapSlogAttrToOtel converts a slog.Attr to an OpenTelemetry attribute.KeyValue.
 func mapSlogAttrToOtel(v slog.Attr) attribute.KeyValue {
 	key := v.Key
 	value := v.Value
@@ -231,6 +231,8 @@ func mapSlogAttrToOtel(v slog.Attr) attribute.KeyValue {
 		return attribute.String(key, value.Time().Format(time.RFC3339))
 	case slog.KindGroup:
 		return attribute.String(key, fmt.Sprintf("%v", value.Group()))
+	case slog.KindAny, slog.KindUint64, slog.KindLogValuer:
+		fallthrough
 	default:
 		return attribute.String(key, value.Resolve().String())
 	}

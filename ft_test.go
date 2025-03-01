@@ -34,7 +34,7 @@ func TestSpan_Basic(t *testing.T) {
 	ctx := context.Background()
 	testAction := "test_action"
 
-	ctx, span := ft.Start(ctx, testAction)
+	_, span := ft.Start(ctx, testAction)
 	fakeClock.Advance(100 * time.Millisecond)
 	span.End()
 
@@ -60,9 +60,9 @@ func TestSpan_WithError(t *testing.T) {
 	ctx := context.Background()
 	testAction := "test_action_error"
 	testError := errors.New("test error")
-	var err error = testError
+	var err = testError
 
-	ctx, span := ft.Start(ctx, testAction, ft.WithErr(&err))
+	_, span := ft.Start(ctx, testAction, ft.WithErr(&err))
 	fakeClock.Advance(50 * time.Millisecond)
 	span.End()
 
@@ -98,7 +98,7 @@ func TestSpan_WithAttributes(t *testing.T) {
 	ctx := context.Background()
 	testAction := "test_action_attrs"
 
-	ctx, span := ft.Start(ctx, testAction, ft.WithAttrs(
+	_, span := ft.Start(ctx, testAction, ft.WithAttrs(
 		slog.String("string", "value"),
 		slog.Int64("int", 1),
 		slog.Bool("bool", true),
@@ -146,7 +146,7 @@ func TestSpan_TracingDisabled(t *testing.T) {
 	ctx := context.Background()
 	testAction := "test_action_disabled"
 
-	ctx, span := ft.Start(ctx, testAction)
+	_, span := ft.Start(ctx, testAction)
 	span.End()
 
 	spans := spanRecorder.Ended()
@@ -167,7 +167,7 @@ func TestSpan_MetricsEnabled(t *testing.T) {
 	ctx := context.Background()
 	testAction := "test_action_metrics"
 
-	ctx, span := ft.Start(ctx, testAction)
+	_, span := ft.Start(ctx, testAction)
 	fakeClock.Advance(75 * time.Millisecond)
 	span.End()
 }
@@ -183,7 +183,7 @@ func TestSpan_NilContext(t *testing.T) {
 	ft.SetTracingEnabled(true)
 
 	testAction := "test_action_nil_ctx"
-	ctx, span := ft.Start(nil, testAction)
+	ctx, span := ft.Start(nil, testAction) //nolint:staticcheck // required for the test.
 	assert.NotNil(t, ctx)
 
 	span.End()
