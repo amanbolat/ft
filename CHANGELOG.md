@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1] - 2025-03-01
+
+### 🚀 Features
+
+- Introduce makefile with lint command
+- Introduce tools directory
+
+### 🐛 Bug Fixes
+
+- Linter issues
+
+### 💼 Other
+
+- Add tools directory with go.mod and tools.go for golangci-lint
+
+### ⚙️ Miscellaneous Tasks
+
+- Add comprehensive GolangCI-Lint configuration for code quality
+- Add `bin` directory to gitignore
+- Update golangci lint config
+
 ## [0.3.0] - 2025-03-01
 
 ### 🐛 Bug Fixes
