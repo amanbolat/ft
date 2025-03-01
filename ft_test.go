@@ -122,7 +122,7 @@ func TestSpan_WithAttributes(t *testing.T) {
 		attribute.String("string", "value"),
 		attribute.Int64("int", 1),
 		attribute.Bool("bool", true),
-		attribute.Int64("duration", int64(time.Second*500)),
+		attribute.Int64("duration", int64(time.Second*500/1000/1000)),
 		attribute.Float64("float", 2),
 		attribute.String("timestamp", time.Date(2024, 1, 1, 1, 1, 1, 1, time.UTC).Format(time.RFC3339)),
 		attribute.String("group", "[string=value int=1]"),
@@ -200,15 +200,28 @@ func TestSpan_DurationUnits(t *testing.T) {
 
 	ft.SetMetricsEnabled(true)
 
+	// Test with milliseconds
 	ft.SetDurationMetricUnit(ft.DurationMetricUnitMillisecond)
+	var logBuffer testLogBuffer
+	logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
+	ft.SetDefaultLogger(logger)
+	
 	_, span := ft.Start(context.Background(), "test_ms")
 	fakeClock.Advance(100 * time.Millisecond)
 	span.End()
-
+	
+	// Verify millisecond format in logs
+	assert.Contains(t, logBuffer.String(), "duration_ms=")
+	
+	// Test with seconds
+	logBuffer.Reset()
 	ft.SetDurationMetricUnit(ft.DurationMetricUnitSecond)
 	_, span = ft.Start(context.Background(), "test_s")
 	fakeClock.Advance(1 * time.Second)
 	span.End()
+	
+	// Verify second format in logs
+	assert.Contains(t, logBuffer.String(), "duration_s=")
 }
 
 func TestSpan_LogLevels(t *testing.T) {
