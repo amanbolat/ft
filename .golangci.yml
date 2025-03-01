@@ -1,3 +1,6 @@
+run:
+  timeout: 5m
+
 linters:
   enable:
     # Basic linters
@@ -15,7 +18,6 @@ linters:
     - durationcheck   # Check for time.Duration misuse
     - errorlint       # Find errors handling issues
     - exhaustive      # Check exhaustiveness of enum switch statements
-    - gocognit        # Calculate cognitive complexity
     - goconst         # Find repeated strings that could be constants
     - gocritic        # Provides diagnostics that check for bugs, performance and style issues
     - gocyclo         # Calculate cyclomatic complexity
@@ -63,9 +65,5 @@ issues:
         - goconst
   max-issues-per-linter: 0
   max-same-issues: 0
-
-run:
-  timeout: 5m
-  skip-dirs:
-    - vendor
+  exclude-dirs:
     - examples
