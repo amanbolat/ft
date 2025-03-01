@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2025-03-01
+
+### 🐛 Bug Fixes
+
+- *(test)* Wrong expected duration value
+- Wrong duration key in the logs
+
+### 🚜 Refactor
+
+- Improve attribute handling, metric recording, and add documentation
+
+### 🧪 Testing
+
+- Update duration attribute and metric unit tests to match implementation
+
 ## [0.2.1] - 2025-01-28
 
 ### 🐛 Bug Fixes
@@ -17,6 +32,7 @@ All notable changes to this project will be documented in this file.
 - Update readme
 - Update readme
 - Fix examples in readme
+- Update changelog
 
 ## [0.2.0] - 2025-01-25
 
