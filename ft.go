@@ -19,7 +19,9 @@ import (
 
 const (
 	instrumentationName           = "github.com/amanbolat/ft"
+	// DurationMetricUnitSecond represents seconds as the unit for duration metrics
 	DurationMetricUnitSecond      = "s"
+	// DurationMetricUnitMillisecond represents milliseconds as the unit for duration metrics
 	DurationMetricUnitMillisecond = "ms"
 )
 
@@ -45,6 +47,7 @@ func WithAttrs(attrs ...slog.Attr) Option {
 	}
 }
 
+// Span represents a traced and logged operation that can be ended
 type Span interface {
 	End()
 }
@@ -58,6 +61,8 @@ type span struct {
 	additionalAttrs []slog.Attr
 }
 
+// Start begins a new traced and logged span for the given action.
+// It returns an updated context and a Span that should be ended when the operation completes.
 func Start(ctx context.Context, action string, opts ...Option) (context.Context, Span) {
 	now := (*globalClock.Load()).Now()
 
@@ -113,7 +118,7 @@ func Start(ctx context.Context, action string, opts ...Option) (context.Context,
 		}
 	}
 
-	attrs := make([]slog.Attr, 1+len(cfg.additionalAttrs))
+	attrs := make([]slog.Attr, 0, 1+len(cfg.additionalAttrs))
 	attrs = append(attrs, slog.String("action", action))
 	attrs = append(attrs, cfg.additionalAttrs...)
 
@@ -130,6 +135,9 @@ func Start(ctx context.Context, action string, opts ...Option) (context.Context,
 }
 
 func (s span) End() {
+	if s.ctx == nil {
+		s.ctx = context.Background()
+	}
 	now := (*globalClock.Load()).Now()
 	duration := now.Sub(s.start)
 	level := globalLogLevelEndOnSuccess.Level()
@@ -137,7 +145,7 @@ func (s span) End() {
 	durationAttrKey := "duration_ms"
 	durationAttrVal := durationToMillisecond(duration)
 
-	attrs := make([]slog.Attr, 2+len(s.additionalAttrs))
+	attrs := make([]slog.Attr, 0, 2+len(s.additionalAttrs))
 	attrs = append(attrs, slog.String("action", s.action), slog.Float64(durationAttrKey, durationAttrVal))
 	attrs = append(attrs, s.additionalAttrs...)
 
@@ -180,7 +188,11 @@ func (s span) End() {
 		}
 
 		if ok {
-			histogram.Record(s.ctx, duration.Seconds())
+			if durationMetricUnit == DurationMetricUnitSecond {
+				histogram.Record(s.ctx, duration.Seconds())
+			} else {
+				histogram.Record(s.ctx, float64(duration.Milliseconds()) / 1000)
+			}
 		}
 	}
 
@@ -199,6 +211,7 @@ func log(ctx context.Context, msg string, level slog.Level, now time.Time, attrs
 	_ = globalLogger.Load().Handler().Handle(ctx, r)
 }
 
+// mapSlogAttrToOtel converts a slog.Attr to an OpenTelemetry attribute.KeyValue
 func mapSlogAttrToOtel(v slog.Attr) attribute.KeyValue {
 	key := v.Key
 	value := v.Value
