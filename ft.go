@@ -18,9 +18,9 @@ import (
 )
 
 const (
-	instrumentationName           = "github.com/amanbolat/ft"
+	instrumentationName = "github.com/amanbolat/ft"
 	// DurationMetricUnitSecond represents seconds as the unit for duration metrics
-	DurationMetricUnitSecond      = "s"
+	DurationMetricUnitSecond = "s"
 	// DurationMetricUnitMillisecond represents milliseconds as the unit for duration metrics
 	DurationMetricUnitMillisecond = "ms"
 )
@@ -142,8 +142,17 @@ func (s span) End() {
 	duration := now.Sub(s.start)
 	level := globalLogLevelEndOnSuccess.Level()
 
+	durationMetricSuffix := "_duration_milliseconds"
 	durationAttrKey := "duration_ms"
 	durationAttrVal := durationToMillisecond(duration)
+
+	durationMetricUnit := globalDurationMetricUnit.Load()
+
+	if durationMetricUnit == DurationMetricUnitSecond {
+		durationAttrKey = "duration_s"
+		durationAttrVal = durationToSecond(duration)
+		durationMetricSuffix = "_duration_seconds"
+	}
 
 	attrs := make([]slog.Attr, 0, 2+len(s.additionalAttrs))
 	attrs = append(attrs, slog.String("action", s.action), slog.Float64(durationAttrKey, durationAttrVal))
@@ -160,15 +169,6 @@ func (s span) End() {
 	}
 
 	if globalMetricsEnabled.Load() {
-		durationMetricSuffix := "_duration_milliseconds"
-		durationMetricUnit := globalDurationMetricUnit.Load()
-
-		if durationMetricUnit == DurationMetricUnitSecond {
-			durationAttrKey = "duration_s"
-			durationAttrVal = durationToSecond(duration)
-			durationMetricSuffix = "_duration_seconds"
-		}
-
 		metricName := s.action + durationMetricSuffix
 		histogram, ok := durationHistograms.Load(metricName)
 
@@ -191,7 +191,7 @@ func (s span) End() {
 			if durationMetricUnit == DurationMetricUnitSecond {
 				histogram.Record(s.ctx, duration.Seconds())
 			} else {
-				histogram.Record(s.ctx, float64(duration.Milliseconds()) / 1000)
+				histogram.Record(s.ctx, float64(duration.Milliseconds())/1000)
 			}
 		}
 	}
