@@ -148,7 +148,6 @@ func (s *span) AddAttrs(attrs ...slog.Attr) {
 	s.additionalAttrs = append(s.additionalAttrs, attrs...)
 	s.mu.Unlock()
 
-	// Add to OpenTelemetry span if it's recording and otel attrs are enabled
 	if s.traceSpan != nil && s.traceSpan.IsRecording() && globalAppendOtelAttrs.Load() {
 		otelAttrs := make([]attribute.KeyValue, 0, len(attrs))
 		for _, attr := range attrs {
