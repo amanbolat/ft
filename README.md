@@ -44,6 +44,38 @@ time=2025-01-25T21:55:27.068+01:00 level=INFO msg="action started" action=main.D
 time=2025-01-25T21:55:27.069+01:00 level=ERROR msg="action ended" action=main.Do duration_ms=0.743 error="unexpected error"
 ```
 
+### Adding attributes dynamically
+
+You can add attributes to a span after it has been created using the `AddAttrs` method. This is useful when you want to add contextual information that becomes available during function execution:
+
+```go
+func ProcessUser(ctx context.Context, userID string) (err error) {
+    ctx, span := ft.Start(ctx, "main.ProcessUser", ft.WithErr(&err))
+    defer span.End()
+
+    // Add initial attributes
+    span.AddAttrs(slog.String("user_id", userID))
+
+    user, err := fetchUser(userID)
+    if err != nil {
+        return err
+    }
+
+    // Add more attributes as they become available
+    span.AddAttrs(
+        slog.String("user_email", user.Email),
+        slog.Bool("user_premium", user.IsPremium),
+    )
+
+    // Process user...
+    return nil
+}
+```
+
+The `AddAttrs` method is thread-safe and can be called multiple times throughout the function execution. All attributes will be included in the final log output and, if enabled, added to the OpenTelemetry span.
+
+### OpenTelemetry Integration
+
 Setup OTEL tracer and meter globally and `ft` will start sending metrics and traces to the OTLP collector:
 
 ```go
