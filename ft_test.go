@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"sync"
 	"testing"
 	"time"
 
@@ -239,6 +240,128 @@ func TestSpan_LogLevels(t *testing.T) {
 	_, span = ft.Start(context.Background(), "test_failure", ft.WithErr(&err))
 	span.End()
 	assert.Contains(t, logBuffer.String(), "level=ERROR")
+}
+
+func TestSpan_AddAttrs(t *testing.T) {
+	ft.SetDefaultLogger(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	spanRecorder := tracetest.NewSpanRecorder()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder))
+	otel.SetTracerProvider(tp)
+
+	fakeClock := clockwork.NewFakeClock()
+	ft.SetClock(fakeClock)
+	ft.SetTracingEnabled(true)
+	ft.SetAppendOtelAttrs(true)
+
+	var logBuffer testLogBuffer
+	logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
+	ft.SetDefaultLogger(logger)
+
+	ctx := context.Background()
+	testAction := "test_add_attrs"
+
+	_, span := ft.Start(ctx, testAction)
+	
+	// Add attributes after span creation
+	span.AddAttrs(
+		slog.String("added_string", "added_value"),
+		slog.Int64("added_int", 42),
+	)
+	
+	span.End()
+
+	// Check that attributes are in the log
+	logOutput := logBuffer.String()
+	assert.Contains(t, logOutput, "added_string=added_value")
+	assert.Contains(t, logOutput, "added_int=42")
+
+	// Check that attributes are in the OpenTelemetry span
+	spans := spanRecorder.Ended()
+	require.Len(t, spans, 1)
+
+	recordedSpan := spans[0]
+	spanAttrs := recordedSpan.Attributes()
+	
+	expectedAttrs := []attribute.KeyValue{
+		attribute.String("action", testAction),
+		attribute.String("added_string", "added_value"),
+		attribute.Int64("added_int", 42),
+	}
+
+	assert.ElementsMatch(t, expectedAttrs, spanAttrs)
+}
+
+func TestSpan_AddAttrs_Concurrent(t *testing.T) {
+	ft.SetDefaultLogger(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	spanRecorder := tracetest.NewSpanRecorder()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder))
+	otel.SetTracerProvider(tp)
+
+	fakeClock := clockwork.NewFakeClock()
+	ft.SetClock(fakeClock)
+	ft.SetTracingEnabled(true)
+	ft.SetAppendOtelAttrs(true)
+
+	var logBuffer testLogBuffer
+	logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
+	ft.SetDefaultLogger(logger)
+
+	ctx := context.Background()
+	testAction := "test_concurrent_add_attrs"
+
+	_, span := ft.Start(ctx, testAction)
+	
+	// Test concurrent access to AddAttrs
+	var wg sync.WaitGroup
+	numGoroutines := 10
+	attrsPerGoroutine := 5
+
+	for i := 0; i < numGoroutines; i++ {
+		wg.Add(1)
+		go func(goroutineID int) {
+			defer wg.Done()
+			for j := 0; j < attrsPerGoroutine; j++ {
+				span.AddAttrs(slog.String(fmt.Sprintf("goroutine_%d_attr_%d", goroutineID, j), fmt.Sprintf("value_%d_%d", goroutineID, j)))
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	span.End()
+
+	// Verify that all attributes were added without data races
+	logOutput := logBuffer.String()
+	
+	// Count how many attributes were logged
+	attrCount := 0
+	for i := 0; i < numGoroutines; i++ {
+		for j := 0; j < attrsPerGoroutine; j++ {
+			expectedAttr := fmt.Sprintf("goroutine_%d_attr_%d=value_%d_%d", i, j, i, j)
+			if assert.Contains(t, logOutput, expectedAttr) {
+				attrCount++
+			}
+		}
+	}
+
+	assert.Equal(t, numGoroutines*attrsPerGoroutine, attrCount, "All attributes should be present in the log")
+}
+
+func TestSpan_AddAttrs_Empty(t *testing.T) {
+	ft.SetDefaultLogger(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	fakeClock := clockwork.NewFakeClock()
+	ft.SetClock(fakeClock)
+
+	ctx := context.Background()
+	testAction := "test_empty_add_attrs"
+
+	_, span := ft.Start(ctx, testAction)
+	
+	// Adding empty attributes should not cause issues
+	span.AddAttrs()
+	
+	span.End()
+
+	// Test should complete without panics or errors
 }
 
 type testLogBuffer struct {

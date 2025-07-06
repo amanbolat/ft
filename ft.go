@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"sync"
 
 	"github.com/puzpuzpuz/xsync/v3"
 	"go.opentelemetry.io/otel"
@@ -50,6 +51,7 @@ func WithAttrs(attrs ...slog.Attr) Option {
 // Span represents a traced and logged operation that can be ended.
 type Span interface {
 	End()
+	AddAttrs(attrs ...slog.Attr)
 }
 
 type span struct {
@@ -59,6 +61,7 @@ type span struct {
 	traceSpan       trace.Span
 	err             *error
 	additionalAttrs []slog.Attr
+	mu              sync.RWMutex
 }
 
 // Start begins a new traced and logged span for the given action.
@@ -124,7 +127,7 @@ func Start(ctx context.Context, action string, opts ...Option) (context.Context,
 
 	log(ctx, "action started", globalLogLevelEndOnSuccess.Level(), now, attrs...)
 
-	return ctx, span{
+	return ctx, &span{
 		ctx:             ctx,
 		start:           now,
 		action:          action,
@@ -134,7 +137,28 @@ func Start(ctx context.Context, action string, opts ...Option) (context.Context,
 	}
 }
 
-func (s span) End() {
+// AddAttrs adds additional attributes to the span that will be logged when the span ends
+// and added to the OpenTelemetry span if it's recording. This method is thread-safe.
+func (s *span) AddAttrs(attrs ...slog.Attr) {
+	if len(attrs) == 0 {
+		return
+	}
+
+	s.mu.Lock()
+	s.additionalAttrs = append(s.additionalAttrs, attrs...)
+	s.mu.Unlock()
+
+	// Add to OpenTelemetry span if it's recording and otel attrs are enabled
+	if s.traceSpan != nil && s.traceSpan.IsRecording() && globalAppendOtelAttrs.Load() {
+		otelAttrs := make([]attribute.KeyValue, 0, len(attrs))
+		for _, attr := range attrs {
+			otelAttrs = append(otelAttrs, mapSlogAttrToOtel(attr))
+		}
+		s.traceSpan.SetAttributes(otelAttrs...)
+	}
+}
+
+func (s *span) End() {
 	if s.ctx == nil {
 		s.ctx = context.Background()
 	}
@@ -154,9 +178,11 @@ func (s span) End() {
 		durationMetricSuffix = "_duration_seconds"
 	}
 
+	s.mu.RLock()
 	attrs := make([]slog.Attr, 0, 2+len(s.additionalAttrs))
 	attrs = append(attrs, slog.String("action", s.action), slog.Float64(durationAttrKey, durationAttrVal))
 	attrs = append(attrs, s.additionalAttrs...)
+	s.mu.RUnlock()
 
 	if s.err != nil && *s.err != nil {
 		level = globalLogLevelEndOnFailure.Level()
