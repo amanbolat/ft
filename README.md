@@ -109,3 +109,18 @@ Here's a markdown table with all the `Set` functions and their descriptions:
 | `SetMetricsEnabled(v bool)`              | Enables or disables global metrics collection.                                                                                                               |
 | `SetClock(c clockwork.Clock)`            | Sets the global clock instance used for time-related operations.                                                                                             |
 | `SetAppendOtelAttrs(v bool)`             | Enables or disables the appending of OpenTelemetry attributes globally.                                                                                      |
+
+## Contribution
+
+### Release
+
+We maintain our Changelog using [git-cliff](https://github.com/orhun/git-cliff).
+
+To create a new release, execute the following commands:
+
+```shell
+git cliff -o CHANGELOG.md -t vX.X.X --bump
+git tag vX.X.X
+gp origin master --tags
+```
+
