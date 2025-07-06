@@ -3,6 +3,7 @@ package ft_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"sync"
@@ -261,27 +262,24 @@ func TestSpan_AddAttrs(t *testing.T) {
 	testAction := "test_add_attrs"
 
 	_, span := ft.Start(ctx, testAction)
-	
-	// Add attributes after span creation
+
 	span.AddAttrs(
 		slog.String("added_string", "added_value"),
 		slog.Int64("added_int", 42),
 	)
-	
+
 	span.End()
 
-	// Check that attributes are in the log
 	logOutput := logBuffer.String()
 	assert.Contains(t, logOutput, "added_string=added_value")
 	assert.Contains(t, logOutput, "added_int=42")
 
-	// Check that attributes are in the OpenTelemetry span
 	spans := spanRecorder.Ended()
 	require.Len(t, spans, 1)
 
 	recordedSpan := spans[0]
 	spanAttrs := recordedSpan.Attributes()
-	
+
 	expectedAttrs := []attribute.KeyValue{
 		attribute.String("action", testAction),
 		attribute.String("added_string", "added_value"),
@@ -310,8 +308,7 @@ func TestSpan_AddAttrs_Concurrent(t *testing.T) {
 	testAction := "test_concurrent_add_attrs"
 
 	_, span := ft.Start(ctx, testAction)
-	
-	// Test concurrent access to AddAttrs
+
 	var wg sync.WaitGroup
 	numGoroutines := 10
 	attrsPerGoroutine := 5
@@ -329,10 +326,8 @@ func TestSpan_AddAttrs_Concurrent(t *testing.T) {
 	wg.Wait()
 	span.End()
 
-	// Verify that all attributes were added without data races
 	logOutput := logBuffer.String()
-	
-	// Count how many attributes were logged
+
 	attrCount := 0
 	for i := 0; i < numGoroutines; i++ {
 		for j := 0; j < attrsPerGoroutine; j++ {
@@ -355,13 +350,11 @@ func TestSpan_AddAttrs_Empty(t *testing.T) {
 	testAction := "test_empty_add_attrs"
 
 	_, span := ft.Start(ctx, testAction)
-	
-	// Adding empty attributes should not cause issues
-	span.AddAttrs()
-	
-	span.End()
 
-	// Test should complete without panics or errors
+	require.NotPanics(t, func() {
+		span.AddAttrs()
+		span.End()
+	})
 }
 
 type testLogBuffer struct {
