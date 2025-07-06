@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2025-07-06
+
+### 🚀 Features
+
+- Add thread-safe AddAttrs method to Span interface
+
+### 🚜 Refactor
+
+- Remove redundant comment in span attribute handling
+
+### 📚 Documentation
+
+- Add AddAttrs method documentation and example usage
+
+### 🧪 Testing
+
+- Improve test structure and add fmt import
+
 ## [0.3.1] - 2025-03-01
 
 ### 🚀 Features
@@ -22,6 +40,7 @@ All notable changes to this project will be documented in this file.
 - Add comprehensive GolangCI-Lint configuration for code quality
 - Add `bin` directory to gitignore
 - Update golangci lint config
+- Update changelog
 
 ## [0.3.0] - 2025-03-01
 
