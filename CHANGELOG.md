@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.2] - 2025-12-25
+
+### 🐛 Bug Fixes
+
+- Correct duration unit conversions
+
+### 🧪 Testing
+
+- Add duration unit precision tests
+
 ## [0.5.1] - 2025-12-25
 
 ### 🚀 Features
@@ -21,6 +31,10 @@ All notable changes to this project will be documented in this file.
 ### 🧪 Testing
 
 - Improve test structure and add fmt import
+
+### ⚙️ Miscellaneous Tasks
+
+- Update changelog for v0.5.1
 
 ## [0.3.1] - 2025-03-01
 

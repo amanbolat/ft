@@ -18,6 +18,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric/noop"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
@@ -221,6 +223,34 @@ func TestSpan_DurationUnits(t *testing.T) {
 	assert.Contains(t, logBuffer.String(), "duration_s=")
 }
 
+func TestSpan_MetricsMillisecondsRecordedInMilliseconds(t *testing.T) {
+	ft.SetDefaultLogger(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	fakeClock := clockwork.NewFakeClock()
+	ft.SetClock(fakeClock)
+	ft.SetMetricsEnabled(true)
+	ft.SetDurationMetricUnit(ft.DurationMetricUnitMillisecond)
+
+	reader := sdkmetric.NewManualReader()
+	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	otel.SetMeterProvider(mp)
+
+	ctx := context.Background()
+	testAction := "test_action_metrics_ms_value"
+
+	_, span := ft.Start(ctx, testAction)
+	fakeClock.Advance(1500 * time.Millisecond)
+	span.End()
+
+	var rm metricdata.ResourceMetrics
+	require.NoError(t, reader.Collect(ctx, &rm))
+
+	metricName := testAction + "_duration_milliseconds"
+	histogram, ok := findHistogramMetric(rm, metricName)
+	require.True(t, ok, "expected histogram %s", metricName)
+	require.Len(t, histogram.DataPoints, 1)
+	assert.InDelta(t, 1500.0, histogram.DataPoints[0].Sum, 0.0001)
+}
+
 func TestSpan_LogLevels(t *testing.T) {
 	fakeClock := clockwork.NewFakeClock()
 	ft.SetClock(fakeClock)
@@ -355,6 +385,20 @@ func TestSpan_AddAttrs_Empty(t *testing.T) {
 		span.AddAttrs()
 		span.End()
 	})
+}
+
+func findHistogramMetric(rm metricdata.ResourceMetrics, name string) (metricdata.Histogram[float64], bool) {
+	for _, scopeMetrics := range rm.ScopeMetrics {
+		for _, metric := range scopeMetrics.Metrics {
+			if metric.Name != name {
+				continue
+			}
+			histogram, ok := metric.Data.(metricdata.Histogram[float64])
+			return histogram, ok
+		}
+	}
+
+	return metricdata.Histogram[float64]{}, false
 }
 
 type testLogBuffer struct {
