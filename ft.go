@@ -216,7 +216,7 @@ func (s *span) End() {
 			if durationMetricUnit == DurationMetricUnitSecond {
 				histogram.Record(s.ctx, duration.Seconds())
 			} else {
-				histogram.Record(s.ctx, float64(duration.Milliseconds())/1000)
+				histogram.Record(s.ctx, durationToMillisecond(duration))
 			}
 		}
 	}
@@ -264,9 +264,9 @@ func mapSlogAttrToOtel(v slog.Attr) attribute.KeyValue {
 }
 
 func durationToMillisecond(d time.Duration) float64 {
-	return float64(d/1000) / 1000
+	return float64(d) / float64(time.Millisecond)
 }
 
 func durationToSecond(d time.Duration) float64 {
-	return float64(d/1000) / 1000000
+	return float64(d) / float64(time.Second)
 }
