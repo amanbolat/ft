@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.4.0] - 2025-07-06
+## [0.5.1] - 2025-12-25
 
 ### 🚀 Features
 
@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file.
 ### 📚 Documentation
 
 - Add AddAttrs method documentation and example usage
+- Add contribution guidelines and update changelog
+- Add repository guidelines
 
 ### 🧪 Testing
 
